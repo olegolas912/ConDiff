@@ -55,7 +55,7 @@ def load_ConDiff(save_dir, pde, grid, covariance="cubic", variance=0.1):
     else:
         name = covariance + str(variance) + "_grid" + str(grid)
 
-    dataset = load_dataset("", name=name, cache_dir=save_dir)
+    dataset = load_dataset("condiff/ConDiff", name=name, cache_dir=save_dir)
     hf_train = h5py.File(dataset["train"].data.to_pandas().iloc[0, 0]["path"], "r")
     hf_test = h5py.File(dataset["test"].data.to_pandas().iloc[0, 0]["path"], "r")
 
