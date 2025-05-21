@@ -54,7 +54,7 @@ def load_ConDiff(save_dir, pde, grid, covariance="cubic", variance=0.1):
     else:
         name = covariance + str(variance) + "_grid" + str(grid)
 
-    base_path = os.path.join(save_dir, "", "ConDiff", name)
+    base_path = os.path.join(save_dir, "df", "ConDiff", name)
     train_path = os.path.join(base_path, name + "_train.h5")
     test_path = os.path.join(base_path, name + "_test.h5")
 
