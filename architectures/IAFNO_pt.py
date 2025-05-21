@@ -68,7 +68,7 @@ class IAFNO(nn.Module):
 
 # ---------- фабрика под твой пайплайн ----------
 def get_IAFNO_pt(
-    grid, device, width=64, depth=8, modes=None, n_imp=2, lr=3e-4, wd=1e-3, batch=32
+    grid, device, width=64, depth=8, modes=None, n_imp=2, lr=1e-3, wd=1e-2, batch=128
 ):
     if modes is None:
         modes = grid // 3
@@ -79,6 +79,6 @@ def get_IAFNO_pt(
         "learning_rate": lr,
         "weight_decay": wd,
         "batch_size": batch,
-        "N_epochs": 300,
+        "N_epochs": 400,
     }
     return model_data, optim_spec
