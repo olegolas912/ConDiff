@@ -1,17 +1,16 @@
-from datasets import load_dataset
 import h5py
 import os
+import numpy as np
 
 
 def load_ConDiff(save_dir, pde, grid, covariance="cubic", variance=0.1):
     """
-    Helper function for dataset loading from the Hugging Face Hub.
-    This function is a recommended way to load ConDiff.
+    Helper function for loading ConDiff dataset from local files.
 
     Parameters
     ----------
     save_dir : str
-        Existing directory to write/read files.
+        Directory containing the ConDiff dataset (should contain 'df/ConDiff' subdirectory).
     pde : {'poisson', 'diffusion'}
         PDE. If `pde` is `poisson`, parameters
         `covariance` and `variance` are ignored.
@@ -55,9 +54,15 @@ def load_ConDiff(save_dir, pde, grid, covariance="cubic", variance=0.1):
     else:
         name = covariance + str(variance) + "_grid" + str(grid)
 
-    dataset = load_dataset("condiff/ConDiff", name=name, cache_dir=save_dir)
-    hf_train = h5py.File(dataset["train"].data.to_pandas().iloc[0, 0]["path"], "r")
-    hf_test = h5py.File(dataset["test"].data.to_pandas().iloc[0, 0]["path"], "r")
+    base_path = os.path.join(save_dir, "df", "ConDiff", name)
+    train_path = os.path.join(base_path, name + "_train.h5")
+    test_path = os.path.join(base_path, name + "_test.h5")
+
+    assert os.path.exists(train_path), f"Train file not found at {train_path}"
+    assert os.path.exists(test_path), f"Test file not found at {test_path}"
+
+    hf_train = h5py.File(train_path, "r")
+    hf_test = h5py.File(test_path, "r")
 
     if pde == "poisson":
         rhs_train, x_train = hf_train["rhs"][:], hf_train["x"][:]
@@ -73,4 +78,7 @@ def load_ConDiff(save_dir, pde, grid, covariance="cubic", variance=0.1):
         k_test, rhs_test, x_test = hf_test["k"][:], hf_test["rhs"][:], hf_test["x"][:]
         train_data = (k_train, rhs_train, x_train)
         test_data = (k_test, rhs_test, x_test)
+
+    hf_train.close()
+    hf_test.close()
     return train_data, test_data
