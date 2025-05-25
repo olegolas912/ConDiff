@@ -37,7 +37,7 @@ class IAFNOBlock(nn.Module):
         self.pw1 = nn.Conv2d(channels, channels, 1)
         self.pw2 = nn.Conv2d(channels, channels, 1)
         self.act = nn.GELU()
-        # Removed: self.theta = nn.Parameter(torch.tensor(0.5))
+        self.theta = nn.Parameter(torch.tensor(0.5))
         # Modified: use InstanceNorm2d instead of GroupNorm(1, channels)
         self.norm = nn.GroupNorm(1, channels)
         # self.norm = nn.InstanceNorm2d(channels, affine=True, eps=1e-02)
@@ -48,7 +48,7 @@ class IAFNOBlock(nn.Module):
             g = self.act(self.pw1(g))
             g = self.pw2(g)
             # Modified: direct residual instead of weighted
-            x = x + g
+            x = self.theta * x + (1 - self.theta) * g
         # apply normalization at end of block
         x = self.norm(x)
         return x
