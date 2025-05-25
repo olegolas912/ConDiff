@@ -78,7 +78,7 @@ class IAFNO(nn.Module):
 def get_IAFNO_pt(
     grid,
     device,
-    width=64,
+    width=128,
     depth=8,
     modes=None,
     n_imp=2,
