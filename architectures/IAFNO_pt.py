@@ -29,13 +29,14 @@ class SpectralConv2d(nn.Module):
 
     def forward(self, x):
         # --- Adaptive spectral modes: увеличиваем/уменьшаем число мод в зависимости от контраста ---
+        B, C, H, W = x.shape
         contrast = x.amax(dim=(1, 2, 3), keepdim=True) - x.amin(
             dim=(1, 2, 3), keepdim=True
         )
         alpha = torch.sigmoid(contrast.mean())  # в (0,1)
-        eff = max(1, int(self.modes * (1 + alpha.item())))
+        raw = int(self.modes * (1 + alpha.item()))
+        eff = max(1, min(self.modes, raw))
 
-        B, C, H, W = x.shape
         x_ft = torch.fft.rfftn(x, dim=(-2, -1))  # (B,C,H,W//2+1)
         out_ft = torch.zeros(
             B, self.out_ch, H, W // 2 + 1, dtype=torch.cfloat, device=x.device
