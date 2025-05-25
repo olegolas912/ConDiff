@@ -133,6 +133,6 @@ def get_IAFNO_pt(
         "learning_rate": lr,
         "weight_decay": wd,
         "batch_size": batch,
-        "N_epochs": 100,
+        "N_epochs": 300,
     }
     return model_data, optim_spec
