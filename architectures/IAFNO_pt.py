@@ -23,7 +23,7 @@ class SpectralConv2d(nn.Module):
         x_low = x_ft[:, :, : self.modes, : self.modes]
         weight = torch.complex(self.wr, self.wi)  # (Cin,Cout,m,m)
         out_ft[:, :, : self.modes, : self.modes] = torch.einsum(
-            "bcih,cjoh->bjoh", x_low, weight
+            "b i x y , i o x y -> b o x y", x_low, weight
         )
         return torch.fft.irfftn(out_ft, s=(H, W), dim=(-2, -1))
 
@@ -39,7 +39,7 @@ class IAFNOBlock(nn.Module):
         self.act = nn.GELU()
         # Removed: self.theta = nn.Parameter(torch.tensor(0.5))
         # Modified: use InstanceNorm2d instead of GroupNorm(1, channels)
-        self.norm = nn.InstanceNorm2d(channels)
+        self.norm = nn.InstanceNorm2d(channels, affine=True, eps=1e-05)
 
     def forward(self, x):
         for _ in range(self.n_imp):
