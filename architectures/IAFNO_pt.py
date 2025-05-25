@@ -14,15 +14,32 @@ class SpectralConv2d(nn.Module):
         self.wr = nn.Parameter(scale * torch.randn(in_ch, out_ch, modes, modes))
         self.wi = nn.Parameter(scale * torch.randn(in_ch, out_ch, modes, modes))
 
-    def forward(self, x):  # (B,C,H,W)
+    # def forward(self, x):  # (B,C,H,W)
+    #     B, C, H, W = x.shape
+    #     x_ft = torch.fft.rfftn(x, dim=(-2, -1))  # (B,C,H,W//2+1) complex
+    #     out_ft = torch.zeros(
+    #         B, self.out_ch, H, W // 2 + 1, dtype=torch.cfloat, device=x.device
+    #     )
+    #     x_low = x_ft[:, :, : self.modes, : self.modes]
+    #     weight = torch.complex(self.wr, self.wi)  # (Cin,Cout,m,m)
+    #     out_ft[:, :, : self.modes, : self.modes] = torch.einsum(
+    #         "b i x y , i o x y -> b o x y", x_low, weight
+    #     )
+    #     return torch.fft.irfftn(out_ft, s=(H, W), dim=(-2, -1))
+
+    def forward(self, x):
+        # --- Adaptive spectral modes: увеличиваем/уменьшаем число мод в зависимости от контраста ---
+        contrast = torch.max(x) - torch.min(x)  # глобальный контраст
+        alpha = torch.sigmoid(contrast)  # в (0,1)
+        eff_modes = max(1, int(self.modes * (1 + alpha.item())))  # <-- здесь
         B, C, H, W = x.shape
-        x_ft = torch.fft.rfftn(x, dim=(-2, -1))  # (B,C,H,W//2+1) complex
+        x_ft = torch.fft.rfftn(x, dim=(-2, -1))
         out_ft = torch.zeros(
             B, self.out_ch, H, W // 2 + 1, dtype=torch.cfloat, device=x.device
         )
-        x_low = x_ft[:, :, : self.modes, : self.modes]
-        weight = torch.complex(self.wr, self.wi)  # (Cin,Cout,m,m)
-        out_ft[:, :, : self.modes, : self.modes] = torch.einsum(
+        x_low = x_ft[:, :, :eff_modes, :eff_modes]  # <-- теперь с eff_modes
+        weight = torch.complex(self.wr, self.wi)
+        out_ft[:, :, :eff_modes, :eff_modes] = torch.einsum(
             "b i x y , i o x y -> b o x y", x_low, weight
         )
         return torch.fft.irfftn(out_ft, s=(H, W), dim=(-2, -1))
@@ -34,6 +51,7 @@ class IAFNOBlock(nn.Module):
         super().__init__()
         self.n_imp = n_imp
         self.spec = SpectralConv2d(channels, channels, modes)
+        self.local = nn.Conv2d(channels, channels, 3, padding=1)
         self.pw1 = nn.Conv2d(channels, channels, 1)
         self.pw2 = nn.Conv2d(channels, channels, 1)
         self.act = nn.GELU()
@@ -45,6 +63,8 @@ class IAFNOBlock(nn.Module):
     def forward(self, x):
         for _ in range(self.n_imp):
             g = self.spec(x)
+            local_feat = self.local(x)  # ----
+            g = g + local_feat  # ---
             g = self.act(self.pw1(g))
             g = self.pw2(g)
             # Modified: direct residual instead of weighted
@@ -83,9 +103,9 @@ def get_IAFNO_pt(
     depth=8,
     modes=None,
     n_imp=4,
-    lr=3e-4,
+    lr=1e-4,
     wd=1e-6,  # Modified: reduced weight decay from 1e-3 → 1e-6
-    batch=16,  # Modified: reduced batch size from 32 → 16
+    batch=8,  # Modified: reduced batch size from 32 → 16
 ):
     if modes is None:
         # Modified: use fewer spectral modes (grid//4 instead of grid//3)
