@@ -29,18 +29,25 @@ class SpectralConv2d(nn.Module):
 
     def forward(self, x):
         # --- Adaptive spectral modes: увеличиваем/уменьшаем число мод в зависимости от контраста ---
-        contrast = torch.max(x) - torch.min(x)  # глобальный контраст
-        alpha = torch.sigmoid(contrast)  # в (0,1)
-        eff_modes = max(1, int(self.modes * (1 + alpha.item())))  # <-- здесь
+        contrast = x.amax(dim=(1, 2, 3), keepdim=True) - x.amin(
+            dim=(1, 2, 3), keepdim=True
+        )
+        alpha = torch.sigmoid(contrast.mean())  # в (0,1)
+        eff = max(1, int(self.modes * (1 + alpha.item())))
+
         B, C, H, W = x.shape
-        x_ft = torch.fft.rfftn(x, dim=(-2, -1))
+        x_ft = torch.fft.rfftn(x, dim=(-2, -1))  # (B,C,H,W//2+1)
         out_ft = torch.zeros(
             B, self.out_ch, H, W // 2 + 1, dtype=torch.cfloat, device=x.device
         )
-        x_low = x_ft[:, :, :eff_modes, :eff_modes]  # <-- теперь с eff_modes
-        weight = torch.complex(self.wr, self.wi)
-        out_ft[:, :, :eff_modes, :eff_modes] = torch.einsum(
-            "b i x y , i o x y -> b o x y", x_low, weight
+
+        # подрезаем как спектр, так и веса
+        x_low = x_ft[:, :, :eff, :eff]
+        w_complex = torch.complex(self.wr, self.wi)
+        w_low = w_complex[:, :, :eff, :eff]
+
+        out_ft[:, :, :eff, :eff] = torch.einsum(
+            "b i x y, i o x y -> b o x y", x_low, w_low
         )
         return torch.fft.irfftn(out_ft, s=(H, W), dim=(-2, -1))
 
