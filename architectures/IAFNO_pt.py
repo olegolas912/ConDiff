@@ -39,8 +39,8 @@ class IAFNOBlock(nn.Module):
         self.act = nn.GELU()
         # Removed: self.theta = nn.Parameter(torch.tensor(0.5))
         # Modified: use InstanceNorm2d instead of GroupNorm(1, channels)
-        # self.norm = nn.GroupNorm(1, channels)
-        self.norm = nn.InstanceNorm2d(channels, affine=True, eps=1e-02)
+        self.norm = nn.GroupNorm(1, channels)
+        # self.norm = nn.InstanceNorm2d(channels, affine=True, eps=1e-02)
 
     def forward(self, x):
         for _ in range(self.n_imp):
@@ -79,7 +79,7 @@ class IAFNO(nn.Module):
 def get_IAFNO_pt(
     grid,
     device,
-    width=128,
+    width=64,
     depth=8,
     modes=None,
     n_imp=4,
