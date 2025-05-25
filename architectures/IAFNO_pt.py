@@ -39,6 +39,7 @@ class IAFNOBlock(nn.Module):
         self.act = nn.GELU()
         # Removed: self.theta = nn.Parameter(torch.tensor(0.5))
         # Modified: use InstanceNorm2d instead of GroupNorm(1, channels)
+        # self.norm = nn.GroupNorm(1, channels)
         self.norm = nn.InstanceNorm2d(channels, affine=True, eps=1e-02)
 
     def forward(self, x):
@@ -81,10 +82,10 @@ def get_IAFNO_pt(
     width=128,
     depth=8,
     modes=None,
-    n_imp=2,
+    n_imp=4,
     lr=3e-4,
     wd=1e-6,  # Modified: reduced weight decay from 1e-3 → 1e-6
-    batch=64,  # Modified: reduced batch size from 32 → 16
+    batch=16,  # Modified: reduced batch size from 32 → 16
 ):
     if modes is None:
         # Modified: use fewer spectral modes (grid//4 instead of grid//3)
@@ -104,6 +105,6 @@ def get_IAFNO_pt(
         "learning_rate": lr,
         "weight_decay": wd,
         "batch_size": batch,
-        "N_epochs": 75,
+        "N_epochs": 100,
     }
     return model_data, optim_spec
