@@ -113,7 +113,7 @@ def get_IAFNO_pt(
     n_imp=4,
     lr=1e-4,
     wd=1e-6,  # Modified: reduced weight decay from 1e-3 → 1e-6
-    batch=8,  # Modified: reduced batch size from 32 → 16
+    batch=16,  # Modified: reduced batch size from 32 → 16
 ):
     if modes is None:
         # Modified: use fewer spectral modes (grid//4 instead of grid//3)
